@@ -11,6 +11,8 @@ canvas.height = 600;
 let gameStarted = false;
 let gameOver = false;
 
+let playerName = "";
+
 // ======================
 // PÁSSARO
 // ======================
@@ -43,7 +45,11 @@ let pipes = [];
 // ======================
 
 let lastScore = 0;
-
+let score = 0;
+let ranking =
+JSON.parse(
+    localStorage.getItem("ranking")
+) || [];
 let highScore =
 parseInt(
 localStorage.getItem("highScore")
@@ -61,9 +67,9 @@ const gameOverMessages = [
 
     "SKILL ISSUE 😏",
 
-    "NEM O CANO\nACREDITOU 😭",
+    "AI FALTOU HABILIDADE",
 
-    "O CANO\nAGRADECE 💥",
+    "NT= NEM TENTOU"
 
 ];
 
@@ -102,7 +108,46 @@ function saveScore() {
         );
 
     }
-    
+
+    let jogadorExiste = false;
+
+    for (let jogador of ranking) {
+
+        if (jogador.nome === playerName) {
+
+            jogadorExiste = true;
+
+            if (score > jogador.pontos) {
+
+                jogador.pontos = score;
+
+            }
+
+        }
+
+    }
+
+    if (!jogadorExiste) {
+
+        ranking.push({
+
+            nome: playerName,
+
+            pontos: score
+
+        });
+
+    }
+
+    ranking.sort(
+        (a, b) => b.pontos - a.pontos
+    );
+
+    localStorage.setItem(
+        "ranking",
+        JSON.stringify(ranking)
+    );
+
     currentGameOverMessage =
 
     gameOverMessages[
@@ -113,6 +158,7 @@ function saveScore() {
         )
 
     ];
+
 }
 
 function resetGame() {
@@ -133,6 +179,40 @@ function resetGame() {
 
 }
 
+const menu =
+    document.getElementById("menu");
+
+const playerInput =
+    document.getElementById("playerName");
+
+const startButton =
+    document.getElementById("startButton");
+
+startButton.addEventListener(
+    "click",
+    function() {
+
+        playerName =
+            playerInput.value.trim();
+
+        if(playerName === ""){
+
+            alert(
+                "Digite seu nome primeiro."
+            );
+
+            return;
+        }
+
+        menu.style.display = "none";
+
+        gameStarted = true;
+
+        resetGame();
+
+    }
+);
+
 // ======================
 // TECLADO
 // ======================
@@ -143,22 +223,31 @@ document.addEventListener("keydown", function(event) {
 
     event.preventDefault();
 
+    // INICIAR JOGO
     if (!gameStarted) {
 
         gameStarted = true;
 
         resetGame();
 
+        velocityY = jumpForce;
+
         return;
+
     }
 
+    // REINICIAR APÓS GAME OVER
     if (gameOver) {
 
         resetGame();
 
+        velocityY = jumpForce;
+
         return;
+
     }
 
+    // PULO NORMAL
     velocityY = jumpForce;
 
 });
@@ -192,28 +281,64 @@ function draw() {
 
     if (!gameStarted) {
 
-        ctx.fillStyle = "black";
+    ctx.fillStyle = "black";
 
-        ctx.font = "30px Arial";
+    ctx.font = "30px Arial";
 
-        ctx.fillText(
-            "FLAPPY BIRD",
-            95,
-            220
-        );
+    ctx.fillText(
+        "FLAPPY BIRD",
+        95,
+        180
+    );
 
-        ctx.font = "18px Arial";
+    ctx.font = "18px Arial";
 
-        ctx.fillText(
-            "Pressione ESPACO",
-            105,
-            280
-        );
+    ctx.fillText(
+        "Pressione ESPACO",
+        105,
+        230
+    );
 
-        requestAnimationFrame(draw);
+    // TOP 3
 
-        return;
+    ctx.font = "22px Arial";
+
+    ctx.fillText(
+        "🏆 TOP 3",
+        130,
+        300
+    );
+
+    ctx.font = "18px Arial";
+
+    for(let i = 0; i < 3; i++) {
+
+        if(ranking[i]) {
+
+            let medalha = "";
+
+if (i === 0) medalha = "🥇";
+if (i === 1) medalha = "🥈";
+if (i === 2) medalha = "🥉";
+
+ctx.fillText(
+    medalha + " " +
+    ranking[i].nome +
+    " - " +
+    ranking[i].pontos,
+    90,
+    350 + (i * 30)
+);
+
+        }
+
     }
+
+    requestAnimationFrame(draw);
+
+    return;
+
+}
 
     // ==================
     // GAME OVER
@@ -253,9 +378,34 @@ function draw() {
             75,
             380
         );
-    
+        
+        ctx.font = "18px Arial";
+        
+        ctx.fillText(
+            "🏆 TOP 3",
+            140,
+            430
+        );
+        
+        for(let i = 0; i < 3; i++) {
+        
+            if(ranking[i]) {
+        
+                ctx.fillText(
+                    (i + 1) + "º - " +
+                    ranking[i].nome +
+                    " : " +
+                    ranking[i].pontos,
+                    100,
+                    470 + (i * 25)
+                );
+        
+            }
+        
+        }
+        
         requestAnimationFrame(draw);
-    
+        
         return;
     
     }
@@ -282,10 +432,12 @@ function draw() {
 
     if (birdY + birdHeight >= canvas.height) {
 
-    saveScore();
-
-    gameOver = true;
-
+        saveScore();
+    
+        velocityY = 0;
+    
+        gameOver = true;
+    
     }
 
     // ==================
@@ -380,7 +532,9 @@ function draw() {
             ) {
             
                 saveScore();
-            
+
+                velocityY = 0;
+
                 gameOver = true;
             
             }
